@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Aplikasi E-Pengawasan</title>
+  <style>
+    body { font-family: sans-serif; padding: 20px; background: #f1f1f1; }
+    h2 { text-align: center; }
+    .card { background: white; padding: 15px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); margin-bottom: 20px; }
+    label, select, input[type="file"] { display: block; width: 100%; margin-top: 10px; }
+    button { margin-top: 10px; padding: 10px; border: none; border-radius: 8px; background: #0066cc; color: white; width: 100%; }
+    table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+    th, td { border: 1px solid #ddd; padding: 8px; text-align: center; }
+    th { background: #0077cc; color: white; }
+  </style>
+</head>
+<body>
+  <h2>E-Pengawasan Inspektorat</h2>
+
+  <div class="card">
+    <h3>Upload Dokumen</h3>
+    <input type="file" id="pdfFile" accept="application/pdf"/>
+    <label for="kategori">Kategori:</label>
+    <select id="kategori">
+      <option value="Audit">Audit</option>
+      <option value="Reviu">Reviu</option>
+      <option value="Evaluasi">Evaluasi</option>
+      <option value="Lainnya">Lainnya</option>
+    </select>
+    <label for="tahun">Tahun:</label>
+    <select id="tahun"></select>
+    <button onclick="uploadFile()">Upload</button>
+    <div id="uploadStatus"></div>
+  </div>
+
+  <div class="card">
+    <h3>Daftar Dokumen</h3>
+    <table id="fileTable">
+      <thead>
+        <tr><th>No</th><th>Nama</th><th>Kategori</th><th>Tahun</th><th>Download</th><th>Hapus</th></tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <script>
+    // Auto-generate tahun
+    const tahunSelect = document.getElementById("tahun");
+    const currentYear = new Date().getFullYear();
+    for(let i = currentYear; i >= 2020; i--) {
+      const opt = document.createElement("option");
+      opt.value = i;
+      opt.text = i;
+      tahunSelect.appendChild(opt);
+    }
+
+    function uploadFile() {
+      const fileInput = document.getElementById("pdfFile");
+      const file = fileInput.files[0];
+      const kategori = document.getElementById("kategori").value;
+      const tahun = document.getElementById("tahun").value;
+
+      if (!file) {
+        alert("Silakan pilih file PDF.");
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("kategori", kategori);
+      formData.append("tahun", tahun);
+
+      fetch("https://script.google.com/macros/s/AKfycbwJedYrfeiGik9T0hPS97rlExMaqGnPbag9unVYxSr34fPiK_sJvN9qyWNpb8You6w1/exec", {
+        method: "POST",
+        body: formData
+      })
+      .then(res => res.text())
+      .then(data => {
+        document.getElementById("uploadStatus").innerText = data;
+        loadFiles();
+      });
+    }
+
+    function loadFiles() {
+      fetch("YOUR_WEB_APP_URL/getFiles")
+        .then(res => res.json())
+        .then(data => {
+          const tbody = document.querySelector("#fileTable tbody");
+          tbody.innerHTML = "";
+          data.forEach((row, i) => {
+            const tr = document.createElement("tr");
+            tr.innerHTML = `
+              <td>${i+1}</td>
+              <td>${row.nama}</td>
+              <td>${row.kategori}</td>
+              <td>${row.tahun}</td>
+              <td><a href="${row.link}" target="_blank">Download</a></td>
+              <td><button onclick="deleteFile('${row.id}')">Hapus</button></td>
+            `;
+            tbody.appendChild(tr);
+          });
+        });
+    }
+
+    function deleteFile(fileId) {
+      if (!confirm("Yakin ingin menghapus dokumen ini?")) return;
+      fetch("YOUR_WEB_APP_URL/deleteFile?id=" + fileId, { method: "DELETE" })
+        .then(res => res.text())
+        .then(msg => {
+          alert(msg);
+          loadFiles();
+        });
+    }
+
+    loadFiles();
+  </script>
+</body>
+</html>
